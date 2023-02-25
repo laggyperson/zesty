@@ -5,11 +5,12 @@ import json
 
 ao3_domain = "https://archiveofourown.org"
 #TODO: what's the fandoms.json path? and also explore the structure! 
-JSON_PATH = "put path of json here"
+JSON_PATH = "../../json/fandoms.json"
 
 #TODO:? a potential helper function, optional to fill out
 # returns an array of each cateogory link (on which multiple fandoms are listed)
 def generate_category_links():
+  
     return
 
 #TODO:? a potential helper function, optional! 
@@ -39,8 +40,25 @@ def get_top_fandoms():
 #    ]
 # }
 def gen_fandom_json():
-    return 
+  # Get the Beautiful Soup object for scraping
+  fandoms_html = requests.get(ao3_domain)
+  fandoms_text = fandoms_html.text
+  fandoms_soup = BeautifulSoup(fandoms_text, 'lxml')
+
+  # Calling Helper Functions to get array of dicts for json file
+  all_fandoms = get_all_fandoms(fandoms_soup)
+  top_fandoms = get_top_fandoms(fandoms_soup)
+
+  # Creating JSON input
+  fandoms_json_input = {"top":top_fandoms, "all":all_fandoms}
+  json = json.dumps(fandoms_json_input, indent=4)
+
+  # Writing to JSON file
+  with open(JSON_PATH, 'w') as f:
+    f.write(json)
+  
+  return 
 
 
 
-# gen_fandom_json() # <-- uncomment this and run the file to update or create fandoms.json
+gen_fandom_json() # <-- uncomment this and run the file to update or create fandoms.json
