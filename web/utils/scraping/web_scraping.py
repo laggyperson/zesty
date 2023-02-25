@@ -16,7 +16,37 @@ def generate_category_links():
 #TODO:? a potential helper function, optional! 
 # returns an array of {"name":"fandom_name", "link":"fandom_link"} for all fandoms
 def get_all_fandoms(fandom_soup):
-    return
+  all_fandoms_search = fandom_soup.select("ul.fandom p.actions > a")
+  names = []
+  links = []
+  res = []
+  name_regex_patt = r"<a .*>(.*)</a>"
+
+  # Going to each fandom webpage and adding to names and links
+  for fandom in all_fandoms_search:
+    link_to_fandom = ao3_domain + fandom.attrs['href']
+
+    # Creating soup object
+    fandom_page_html = requests.get(link_to_fandom)
+    fandom_page_text = fandom_page_html.text
+    fandom_page_soup = BeautifulSoup(fandom_page_text, 'lxml')
+
+    fandom_page_search = fandom_page_soup.select("ol.fandom ul.group a")
+    
+    # Searching fandom category page
+    for fand in fandom_page_search:
+      name = re.match(name_regex_patt, str(fand)).group(1)
+      link = fandom.attrs['href']
+      
+      names.append(name)
+      links.append(ao3_domain + link)
+
+  # Creating Result
+  for i in range(len(names)):
+    dictionary = {"name":names[i], "link":links[i]}
+    res.append(dictionary)
+
+  return res
 
 #TODO:? a potential helper function, optional! 
 # returns an array of {"name":"fandom_name", "link":"fandom_link"} for the top most written fandoms in each category
@@ -70,13 +100,13 @@ def gen_fandom_json():
 
   # Creating JSON input
   fandoms_json_input = {"top":top_fandoms, "all":all_fandoms}
-  json = json.dumps(fandoms_json_input, indent=4)
+  json_in = json.dumps(fandoms_json_input, indent=4)
 
   # Writing to JSON file
   with open(JSON_PATH, 'w') as f:
-    f.write(json)
+    f.write(json_in)
   
   return 
 
-get_all_fandoms(BeautifulSoup(requests.get("https://archiveofourown.org/media").text, 'lxml'))
-# gen_fandom_json() # <-- uncomment this and run the file to update or create fandoms.json
+# get_all_fandoms(BeautifulSoup(requests.get("https://archiveofourown.org/media").text, 'lxml'))
+gen_fandom_json() # <-- uncomment this and run the file to update or create fandoms.json
