@@ -21,19 +21,19 @@ def get_all_fandoms(fandom_soup):
 #TODO:? a potential helper function, optional! 
 # returns an array of {"name":"fandom_name", "link":"fandom_link"} for the top most written fandoms in each category
 def get_top_fandoms(fandom_soup):
-  top_all_fandoms_search = fandom_soup.select("ol.index group > li > a")
+  top_all_fandoms_search = fandom_soup.select("ol.group > li > a")
   names = []
   links = []
   res = []
-  name_regex_patt = r"<a.*>(.*)</a>"
+  name_regex_patt = r"<a .*>(.*)</a>"
 
   # Getting all top fandoms on homepage of All Fandoms
   for fandom in top_all_fandoms_search:
-    name = re.match(name_regex_patt, fandom).group(0)
+    name = re.match(name_regex_patt, str(fandom)).group(1)
     link = fandom.attrs['href']
     
     names.append(name)
-    links.append(link)
+    links.append(ao3_domain + link)
   
   # Creating Result
   for i in range(len(names)):
@@ -60,7 +60,7 @@ def get_top_fandoms(fandom_soup):
 # }
 def gen_fandom_json():
   # Get the Beautiful Soup object for scraping
-  fandoms_html = requests.get(ao3_domain)
+  fandoms_html = requests.get(ao3_domain + '/media') # Don't want to brute force code it
   fandoms_text = fandoms_html.text
   fandoms_soup = BeautifulSoup(fandoms_text, 'lxml')
 
@@ -78,6 +78,5 @@ def gen_fandom_json():
   
   return 
 
-
-gen_top_fandoms(BeautifulSoup(requests.get(ao3_domain).text, 'lxml'))
+get_all_fandoms(BeautifulSoup(requests.get("https://archiveofourown.org/media").text, 'lxml'))
 # gen_fandom_json() # <-- uncomment this and run the file to update or create fandoms.json
