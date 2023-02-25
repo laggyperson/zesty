@@ -89,8 +89,16 @@ def get_top_fandoms(fandom_soup):
 #    ]
 # }
 def gen_fandom_json():
+  # Getting into the All Fandoms page
+  home_html = requests.get(ao3_domain)
+  home_text = home_html.text
+  home_soup = BeautifulSoup(home_text, 'lxml')
+  
+  home_search = home_soup.select_one("ul.menu > li > a")
+  all_fandoms_link = ao3_domain + home_search.attrs['href']
+  
   # Get the Beautiful Soup object for scraping
-  fandoms_html = requests.get(ao3_domain + '/media') # Don't want to brute force code it
+  fandoms_html = requests.get(all_fandoms_link)
   fandoms_text = fandoms_html.text
   fandoms_soup = BeautifulSoup(fandoms_text, 'lxml')
 
