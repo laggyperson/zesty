@@ -14,7 +14,7 @@ def generate_category_links():
 
 #TODO:? a potential helper function, optional! 
 # returns an array of {"name":"fandom_name", "link":"fandom_link"} for all fandoms
-def get_all_fandoms(fandom_)soup):
+def get_all_fandoms(fandom_soup):
     return
 
 #TODO:? a potential helper function, optional! 
@@ -63,5 +63,5 @@ def gen_fandom_json():
   return 
 
 
-gen_top_fandoms(BeautifulSoup(requests.get(ao3_domain).text, 'lxml')
+gen_top_fandoms(BeautifulSoup(requests.get(ao3_domain).text, 'lxml'))
 # gen_fandom_json() # <-- uncomment this and run the file to update or create fandoms.json
