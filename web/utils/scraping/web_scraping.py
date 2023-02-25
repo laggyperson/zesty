@@ -2,6 +2,7 @@
 from bs4 import BeautifulSoup
 import requests
 import json
+import re
 
 ao3_domain = "https://archiveofourown.org"
 #TODO: what's the fandoms.json path? and also explore the structure! 
@@ -23,8 +24,23 @@ def get_top_fandoms(fandom_soup):
   top_all_fandoms_search = fandom_soup.select("ol.index group > li > a")
   names = []
   links = []
-  print(top_all_fandoms_search)
-  return 
+  res = []
+  name_regex_patt = r"<a.*>(.*)</a>"
+
+  # Getting all top fandoms on homepage of All Fandoms
+  for fandom in top_all_fandoms_search:
+    name = re.match(name_regex_patt, fandom).group(0)
+    link = fandom.attrs['href']
+    
+    names.append(name)
+    links.append(link)
+  
+  # Creating Result
+  for i in range(len(names)):
+    dictionary = {"name":names[i], "link":links[i]}
+    res.append(dictionary)
+
+  return res
 
 #TODO: Week One deliverable ! it's to write a function that will populate fandoms.json 
 # creates fandoms.json file in the json folder with all fandoms and top fandoms in the listed format: '*shoudln't return anything'
