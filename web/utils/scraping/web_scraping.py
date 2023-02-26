@@ -1,8 +1,14 @@
+"""
+Authors: Phillip Chen, Anna Chung, Trevor Trinh
+
+This will scrape the "archiveofourown" website for fandoms. It takes in an integer input that will filter out fandoms that have less fanfics than the specified number.
+"""
 # run this python file to update the json's whenever you want :)
 from bs4 import BeautifulSoup
 import requests
 import json
 import re
+import sys
 
 ao3_domain = "https://archiveofourown.org"
 #TODO: what's the fandoms.json path? and also explore the structure! 
@@ -13,29 +19,63 @@ JSON_PATH = "../../json/fandoms.json"
 def generate_category_links():
     return
 
+"""
+Returns the webpage html, text, and BeautifulSoup object for a link
+
+params:
+  (str) link : the link to the page
+ret:
+  html : the result of requesting link
+  text : the text of the html
+  soup : the BeautifulSoup object for the webpage
+"""
+def gen_soup(link):
+  html = requests.get(link)
+  text = html.text
+  soup = BeautifulSoup(text, 'lxml')
+  return html, text, soup
+
 #TODO:? a potential helper function, optional! 
-# returns an array of {"name":"fandom_name", "link":"fandom_link"} for all fandoms
-def get_all_fandoms(fandom_soup):
+"""
+Returns an array of {"name":"fandom_name", "link":"fandom_link"} for all fandoms
+
+params: 
+  (soup) fandom_soup : the BeautifulSoup object to scrape
+  (int) minimum : the minimum number of fanfics to include that fandom
+ret: 
+  (dict) res : array of dictionaries of the all fandom names and links
+"""
+def get_all_fandoms(fandom_soup, minimum):
   all_fandoms_search = fandom_soup.select("ul.fandom p.actions > a")
   names = []
   links = []
   res = []
-  name_regex_patt = r"<a .*>(.*)</a>"
+  name_regex_patt = r".*<a .*>(.*)<\/a>.*"
+  count_regex_patt = r"\((\d+)\)"
 
   # Going to each fandom webpage and adding to names and links
   for fandom in all_fandoms_search:
     link_to_fandom = ao3_domain + fandom.attrs['href']
 
     # Creating soup object
-    fandom_page_html = requests.get(link_to_fandom)
-    fandom_page_text = fandom_page_html.text
-    fandom_page_soup = BeautifulSoup(fandom_page_text, 'lxml')
+    fandom_page_html, fandom_page_text, fandom_page_soup = gen_soup(link_to_fandom)
 
-    fandom_page_search = fandom_page_soup.select("ol.fandom ul.group a")
+    fandom_page_search = fandom_page_soup.select("ol.fandom ul.group li")
     
     # Searching fandom category page
     for fand in fandom_page_search:
-      name = re.match(name_regex_patt, str(fand)).group(1)
+      fand_str = str(fand)
+
+      # Checking if there are enough fanfictions
+      try: 
+        num = int(re.search(count_regex_patt, fand_str).group(1))
+      except AttributeError:
+        pass
+      if (num < minimum):
+        continue
+
+      # Normal processing if passed minimum
+      name = re.search(name_regex_patt, fand_str).group(1)
       link = fandom.attrs['href']
       
       names.append(name)
@@ -49,7 +89,14 @@ def get_all_fandoms(fandom_soup):
   return res
 
 #TODO:? a potential helper function, optional! 
-# returns an array of {"name":"fandom_name", "link":"fandom_link"} for the top most written fandoms in each category
+"""
+Returns an array of {"name":"fandom_name", "link":"fandom_link"} for the top most written fandoms in each category
+
+params: 
+  (soup) fandom_soup : the BeautifulSoup object to scrape
+ret: 
+  (dict) res : array of dictionaries of the top fandom names and links
+"""
 def get_top_fandoms(fandom_soup):
   top_all_fandoms_search = fandom_soup.select("ol.group > li > a")
   names = []
@@ -88,23 +135,25 @@ def get_top_fandoms(fandom_soup):
 #       }
 #    ]
 # }
-def gen_fandom_json():
+"""
+params:
+  (int) minimum : the minimum number of fanfic texts to scrape for in all_fandoms
+ret: None
+"""
+def gen_fandom_json(minimum):
   # Getting into the All Fandoms page
-  home_html = requests.get(ao3_domain)
-  home_text = home_html.text
-  home_soup = BeautifulSoup(home_text, 'lxml')
+  home_html, home_text, home_soup = gen_soup(ao3_domain)
   
   home_search = home_soup.select_one("ul.menu > li > a")
   all_fandoms_link = ao3_domain + home_search.attrs['href']
   
   # Get the Beautiful Soup object for scraping
-  fandoms_html = requests.get(all_fandoms_link)
-  fandoms_text = fandoms_html.text
-  fandoms_soup = BeautifulSoup(fandoms_text, 'lxml')
+  fandoms_html, fandoms_text, fandoms_soup = gen_soup(all_fandoms_link)
 
   # Calling Helper Functions to get array of dicts for json file
-  all_fandoms = get_all_fandoms(fandoms_soup)
+  all_fandoms = get_all_fandoms(fandoms_soup, minimum)
   top_fandoms = get_top_fandoms(fandoms_soup)
+  
 
   # Creating JSON input
   fandoms_json_input = {"top":top_fandoms, "all":all_fandoms}
@@ -114,7 +163,8 @@ def gen_fandom_json():
   with open(JSON_PATH, 'w') as f:
     f.write(json_in)
   
+  print("Success!")
   return 
 
 # get_all_fandoms(BeautifulSoup(requests.get("https://archiveofourown.org/media").text, 'lxml'))
-gen_fandom_json() # <-- uncomment this and run the file to update or create fandoms.json
+gen_fandom_json(int(sys.argv[1])) # <-- uncomment this and run the file to update or create fandoms.json
