@@ -22,7 +22,7 @@ ao3_domain = "https://archiveofourown.org"
 # openai.api_key = os.getenv("OPENAI_API_KEY") #uncomment whe we start using open ai
 
 # NUM_TRAINING_FANFIC = 10 #can change for testing! 
-JSON_PATH = "put path of json here" #TODO: week 2 this is just a good global var to have, please use it 
+JSON_PATH = "../../json" #TODO: week 2 this is just a good global var to have, please use it 
 
 #a potential helper function for you to use -- also an exmaple of how to open and load jsons! 
 # given a fandom <string>, it returns a link <string> for that fandom's fanfics
@@ -39,6 +39,22 @@ def get_link(ui_fandom):
 # returns true if fanfic card {type beautiful soup} is in the given language <string>, false otherwise
 def is_language(fanfic, language):
     return 
+
+get_text = r">(.*)<"
+"""
+Helper function to get text between tags
+
+params:
+    (soup.tag) tag : the html tag to get text from
+ret:
+    (str) text : the text between the tags
+"""
+def get_tag_text(tag):
+    try:
+        return re.search(get_text, str(tag))[1]
+    except TypeError:
+        print(tag)
+        return
 
 #TODO: WEEK 2 Deliberable finish this function ! I have some very loose guide lines for you, feel free to follow them or start from scratch! 
 # returns an array of two elements: 1) an array of all the authors whose fanfiction we scraped; 2. specified {number} fanfics (or all fanfic availiable if the total fanfic is less than the number) of word range {min_length}to {max_length}
@@ -61,6 +77,7 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
         #some handling for when the site crashes, you can modify this chunk of code to fit into the code you write, or keep as is 
         site_down = soup.find("p", string=re.compile("Retry later"))
         while site_down != None:
+            print("Site down :(")
             time.sleep(60) #wait 60 then retry 
             html = requests.get(link)
             soup = BeautifulSoup(html.text, "lxml")
@@ -70,24 +87,26 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
         # check valid author and fanfic/is a fanfic you want to add 
         # more formatting? getting data you want? 
         # formatting training data
-        fanfic = soup.select("ol.work.index.group")
-        for f in fanfics:
-            author = f.select("h4.heading > a")[1].get_text() 
-
+        fanfic = soup.select("ol.work.index.group > li")
+        for f in fanfic:
+            author = get_tag_text(f.find("a", rel="author"))
+            
             # Check language and word count; continue to next fanfiction if constraints not met
-            lang = f.select("d1.stats > dd.language").get_text()
-            num_words = int(f.select("d1.stats > dd.words").get_text())
+            lang = get_tag_text(f.select_one("d1.stats > dd.language"))
+            num_words = int(get_tag_text(f.select("d1.stats > dd.words")))
             if (lang != language) or ((num_words < min_length) or (num_words > max_length)):
                 continue
             
             # My fanfic data will have prompts for relationships, characters, and freeforms
-            attributes = f.find_all("li")
             fanfic_info = {"prompt": "write a complete, short fan fiction: \nFandom: " + fandom["name"], "completion": " "}
-            for a in attributes:
-                classify = a.attrs['class']
+            
+            # Getting tags
+            tags = f.select("ul.tags.commas > li")
+            for t in tags:
+                classify = t.attrs['class']
                 if (classify != "warnings"):
                     tag = "\n" + classify[0].upper() + classify[1:] + " "
-                    text = a.find("a").get_text() + " "
+                    text = get_tag_text(t.find("a")) + " "
                     fanfic_info["prompt"] += tag + text
             fanfic_info["prompt"] += "\n\n###\n\n" # Fixed separator at end of prompt for training
 
@@ -103,16 +122,16 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
                 # Getting Chapter Title
                 title = text_soup.find("h3", class_="title")
                 if (title != None):
-                    text += title.find("a").get_text() + title.get_text() + ": "
+                    text += get_tag_text(title.find("a")) + re.search(r"a>(.*)<", str(title))[1] + ": "
 
                 # Getting text
                 page = text_soup.select("div.userstuff.module > p")
                 for p in page:
-                    text += p.get_text()
+                    text += get_tag_text(p)
 
                 # Finding next page in fanfic
                 link_to_text = ""
-                next_chap = text_soup.select("ul.actions > li"):
+                next_chap = text_soup.select("ul.actions > li")
                 for actions in next_chap:
                     if re.search(r"Next Chapter", actions.get_text()) != None:
                         link_to_text = ao3_domain + actions.find("a").attrs["href"]
@@ -124,7 +143,7 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
             # Appending fanfic info
             fanfics.append(fanfic_info)
 
-        next_page = soup.select("li.next > a").attrs['href']
+        next_page = soup.select_one("li.next > a").attrs['href']
         if next_page != None:
             link = ao3_domain + next_page
             counter += 1
@@ -187,3 +206,6 @@ def generate_fanfic(fandom, tags):
 #         )
 #     else:
 #         print("usage: generate_fanfic fandom [tags]")
+
+# Testing get_fanfic_info
+print(get_fanfic_info("Harry Potter - J. K. Rowling", 10, "English", 500, 2000))
