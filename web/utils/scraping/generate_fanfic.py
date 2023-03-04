@@ -82,26 +82,52 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
             
             # My fanfic data will have prompts for relationships, characters, and freeforms
             attributes = f.find_all("li")
-            fanfic_info = {"prompt": "write a complete, short fan fiction: \nFandom: " + fandom["name"], "completion"}
+            fanfic_info = {"prompt": "write a complete, short fan fiction: \nFandom: " + fandom["name"], "completion": " "}
             for a in attributes:
                 classify = a.attrs['class']
                 if (classify != "warnings"):
                     tag = "\n" + classify[0].upper() + classify[1:] + " "
                     text = a.find("a").get_text() + " "
                     fanfic_info["prompt"] += tag + text
-            
+            fanfic_info["prompt"] += "\n\n###\n\n" # Fixed separator at end of prompt for training
+
+            text = ""
             # Getting fanfic text
-            link_to_text = f.select("h4.heading > a")[0].attrs['href']
-            html_to_text = requests.get(link_to_text)
-            text_soup = BeautifulSoup(html_to_text.text, 'lxml')
+            link_to_text = ao3_domain + f.select("h4.heading > a")[0].attrs['href']
+
+            # While loop in case of multiple pages
+            while link_to_text != "":
+                html_to_text = requests.get(link_to_text)
+                text_soup = BeautifulSoup(html_to_text.text, 'lxml')
+
+                # Getting Chapter Title
+                title = text_soup.find("h3", class_="title")
+                if (title != None):
+                    text += title.find("a").get_text() + title.get_text() + ": "
+
+                # Getting text
+                page = text_soup.select("div.userstuff.module > p")
+                for p in page:
+                    text += p.get_text()
+
+                # Finding next page in fanfic
+                link_to_text = ""
+                next_chap = text_soup.select("ul.actions > li"):
+                for actions in next_chap:
+                    if re.search(r"Next Chapter", actions.get_text()) != None:
+                        link_to_text = ao3_domain + actions.find("a").attrs["href"]
+                        break
             
+            text += "###STOP###" # Ending text sequence
+            fanfic_info["completion"] += text
 
             # Appending fanfic info
             fanfics.append(fanfic_info)
 
-        next_page = "get next potential page here"
+        next_page = soup.select("li.next > a").attrs['href']
         if next_page != None:
-            link = "link for next page"
+            link = ao3_domain + next_page
+            counter += 1
         else:
             link = ""
 
