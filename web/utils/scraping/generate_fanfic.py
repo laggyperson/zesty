@@ -7,6 +7,7 @@ import re
 import os
 import time
 import sys
+import re
 
 #tips: 
 #is there always an author for every fanfic? 
@@ -48,7 +49,9 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
     fanfics = []
     authors = []
 
-    sort_by = f""  
+    # Before: https://archiveofourown.org/tags/*h*DRCL%20Midnight%20Children%20(Manga)/works
+    # After: https://archiveofourown.org/works?commit=Sort+and+Filter&work_search%5Bsort_column%5D=hits&work_search%5Bother_tag_names%5D=&work_search%5Bexcluded_tag_names%5D=&work_search%5Bcrossover%5D=&work_search%5Bcomplete%5D=&work_search%5Bwords_from%5D=&work_search%5Bwords_to%5D=&work_search%5Bdate_from%5D=&work_search%5Bdate_to%5D=&work_search%5Bquery%5D=&work_search%5Blanguage_id%5D=&tag_id=*h*DRCL+Midnight+Children+%28Manga%29
+    sort_by = f""
     link = get_link(fandom) + sort_by
 
     while counter < number and link != "":
@@ -64,10 +67,38 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
             site_down = soup.find("p", string=re.compile("Retry later"))
 
       
-                # check valid author and fanfic/is a fanfic you want to add 
-                # more formatting? getting data you want? 
-                # formatting training data
-                
+        # check valid author and fanfic/is a fanfic you want to add 
+        # more formatting? getting data you want? 
+        # formatting training data
+        fanfic = soup.select("ol.work.index.group")
+        for f in fanfics:
+            author = f.select("h4.heading > a")[1].get_text() 
+
+            # Check language and word count; continue to next fanfiction if constraints not met
+            lang = f.select("d1.stats > dd.language").get_text()
+            num_words = int(f.select("d1.stats > dd.words").get_text())
+            if (lang != language) or ((num_words < min_length) or (num_words > max_length)):
+                continue
+            
+            # My fanfic data will have prompts for relationships, characters, and freeforms
+            attributes = f.find_all("li")
+            fanfic_info = {"prompt": "write a complete, short fan fiction: \nFandom: " + fandom["name"], "completion"}
+            for a in attributes:
+                classify = a.attrs['class']
+                if (classify != "warnings"):
+                    tag = "\n" + classify[0].upper() + classify[1:] + " "
+                    text = a.find("a").get_text() + " "
+                    fanfic_info["prompt"] += tag + text
+            
+            # Getting fanfic text
+            link_to_text = f.select("h4.heading > a")[0].attrs['href']
+            html_to_text = requests.get(link_to_text)
+            text_soup = BeautifulSoup(html_to_text.text, 'lxml')
+            
+
+            # Appending fanfic info
+            fanfics.append(fanfic_info)
+
         next_page = "get next potential page here"
         if next_page != None:
             link = "link for next page"
