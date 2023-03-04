@@ -60,8 +60,8 @@ def get_all_fandoms(fandom_soup, minimum):
     # Creating soup object
     fandom_page_html, fandom_page_text, fandom_page_soup = gen_soup(link_to_fandom)
 
-    fandom_page_search = fandom_page_soup.select("ol.fandom ul.group li")
-    
+    fandom_page_search = fandom_page_soup.select("ol.alphabet.fandom.index.group ul.tags.index.group li")
+
     # Searching fandom category page
     for fand in fandom_page_search:
       fand_str = str(fand)
@@ -76,7 +76,7 @@ def get_all_fandoms(fandom_soup, minimum):
 
       # Normal processing if passed minimum
       name = re.search(name_regex_patt, fand_str).group(1)
-      link = fandom.attrs['href']
+      link = fand.find("a").attrs['href']
       
       names.append(name)
       links.append(ao3_domain + link)

@@ -40,7 +40,7 @@ def is_language(fanfic, language):
     return 
 
 #TODO: WEEK 2 Deliberable finish this function ! I have some very loose guide lines for you, feel free to follow them or start from scratch! 
-# returns an array of two eleents: 1) an array of all the authors whose fanfiction we scraped; 2. specified {number} fanfics (or all fanfic availiable if the total fanfic is less than the number) of word range {min_length}to {max_length}
+# returns an array of two elements: 1) an array of all the authors whose fanfiction we scraped; 2. specified {number} fanfics (or all fanfic availiable if the total fanfic is less than the number) of word range {min_length}to {max_length}
 # in {language} from the given {fandom} in an array of dicts where the dicts are the formatted fanfic traning data 
 #hint: how can we use ao3's preexisting filtering system to help us out, and get us some of the fanfic that we want! 
 def get_fanfic_info(fandom, number, language, min_length, max_length):
@@ -48,7 +48,7 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
     fanfics = []
     authors = []
 
-    sort_by = f"maybe some filtering..."  
+    sort_by = f""  
     link = get_link(fandom) + sort_by
 
     while counter < number and link != "":
