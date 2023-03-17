@@ -36,7 +36,7 @@ contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
     }
 
     constructor() ERC721('bearchainAI', 'BCHAI') {}
-
+    /**
     // Methods to change NFT base metadata after deployment if needed
     function setExternalUrl(string memory _url) public onlyOwner {
         external_url = _url;
@@ -173,3 +173,4 @@ contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
         super._burn(tokenId);
     }
 }
+*/
