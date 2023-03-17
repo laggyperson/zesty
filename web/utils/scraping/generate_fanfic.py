@@ -53,7 +53,6 @@ def get_tag_text(tag):
     try:
         return re.search(get_text, str(tag))[1]
     except TypeError:
-        print(tag)
         return
 """
 Helper function to convert ao3 word count string to ints (removes commas)
@@ -104,9 +103,9 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
             authors.append(author)
             
             # Check language and word count; continue to next fanfiction if constraints not met
-            lang = get_tag_text(f.select_one("dl.stats > dd.language"))
+            lang = get_tag_text(f.select_one("dl.stats > dd.language")).lower()
             num_words = convert_to_int(get_tag_text(f.select("dl.stats > dd.words")))
-            if (lang != language) or ((num_words < min_length) or (num_words > max_length)):
+            if (lang != language.lower()) or ((num_words < min_length) or (num_words > max_length)):
                 continue
             
             # My fanfic data will have prompts for relationships, characters, and freeforms
@@ -115,10 +114,10 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
             # Getting tags
             tags = f.select("ul.tags.commas > li")
             for t in tags:
-                classify = t.attrs['class']
-                if (classify != "warnings"):
-                    tag = "\n" + str(classify[0].upper()) + str(classify[1:]) + " "
-                    text = get_tag_text(t.find("a")) + " "
+                classify = t.attrs['class'][0]
+                tag = "\n" + str(classify[0].upper()) + str(classify[1:]) + " "
+                text = get_tag_text(t.find("a")) + " "
+                if (text != "Creator Chose Not To Use Archive Warnings" or text != "No Archive Warnings Apply"):
                     fanfic_info["prompt"] += tag + text
             fanfic_info["prompt"] += "\n\n###\n\n" # Fixed separator at end of prompt for training
 
@@ -218,3 +217,8 @@ def generate_fanfic(fandom, tags):
 #         )
 #     else:
 #         print("usage: generate_fanfic fandom [tags]")
+
+[a, t] = get_fanfic_info('Harry Potter - J. K. Rowling', 10, 'English', 500, 1000)
+print(a, '\n\n\n\n')
+for f in t:
+    print(f['prompt'], '\n', f['completion'], '\n\n\n')
