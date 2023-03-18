@@ -8,7 +8,6 @@ import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
 import {Base64} from '@openzeppelin/contracts/utils/Base64.sol';
 
 // Deployed on Mumbai
-
 contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     using Strings for uint256;
@@ -36,7 +35,29 @@ contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
     }
 
     constructor() ERC721('bearchainAI', 'BCHAI') {}
-    /**
+
+    function safeMint(address to, string memory uri) public onlyOwner {
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+    }
+
+    // The following functions are overrides required by Solidity.
+
+    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
+        super._burn(tokenId);
+    }
+
+    function tokenURI(uint256 tokenId)
+        public
+        view
+        override(ERC721, ERC721URIStorage)
+        returns (string memory)
+    {
+        return super.tokenURI(tokenId);
+    }
+
     // Methods to change NFT base metadata after deployment if needed
     function setExternalUrl(string memory _url) public onlyOwner {
         external_url = _url;
@@ -57,6 +78,7 @@ contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
      * @param content main fanfic content
      * @param kudos list of referenced authors and number of fanfics cited
      */
+    /*
     function mint(
         string memory title,
         string memory content,
@@ -90,12 +112,13 @@ contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
 
             _____[__________] += __________;
         }
-    }
+    }*/
 
     /**
      * @dev overrides default tokenURI and returns in base64 json format
      * @param tokenId returns uri for the specified tokenid
      */
+    /*
     function tokenURI(
         uint256 tokenId
     ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
@@ -143,12 +166,13 @@ contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
                     Base64.encode(json)
                 )
             );
-    }
+    } */
 
     /**
      * @dev creates json strin of kudos attributes
      * @param kudos list of all kudo structs
      */
+    /*
     function _kudosToAttributeString(
         Kudo[] memory kudos
     ) internal pure returns (string memory) {
@@ -164,13 +188,12 @@ contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
             );
         }
         return _____;
-    }
+    }*/
 
     // The following functions are overrides required by Solidity.
-    function _burn(
+    /*function _burn(
         uint256 tokenId
     ) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
-    }
+    }*/
 }
-*/
