@@ -53,7 +53,7 @@ def get_tag_text(tag):
     try:
         return re.search(get_text, str(tag))[1]
     except TypeError:
-        return
+        return ""
 """
 Helper function to convert ao3 word count string to ints (removes commas)
 
@@ -99,31 +99,33 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
         # formatting training data
         fanfic = soup.select("ol.work.index.group > li")
         for f in fanfic:
-            author = get_tag_text(f.find("a", rel="author"))
-            authors.append(author)
-            
             # Check language and word count; continue to next fanfiction if constraints not met
             lang = get_tag_text(f.select_one("dl.stats > dd.language")).lower()
             num_words = convert_to_int(get_tag_text(f.select("dl.stats > dd.words")))
             if (lang != language.lower()) or ((num_words < min_length) or (num_words > max_length)):
                 continue
+
+            # Adding authors
+            author = get_tag_text(f.find("a", rel="author"))
+            authors.append(author)
             
             # My fanfic data will have prompts for relationships, characters, and freeforms
-            fanfic_info = {"prompt": "write a complete, short fan fiction: \nFandom: " + fandom, "completion": " "}
+            fanfic_info = {"prompt": "write a complete, short fan fiction: \nFandom: " + fandom + "\nTags: ", "completion": " "}
             
             # Getting tags
             tags = f.select("ul.tags.commas > li")
             for t in tags:
                 classify = t.attrs['class'][0]
-                tag = "\n" + str(classify[0].upper()) + str(classify[1:]) + " "
-                text = get_tag_text(t.find("a")) + " "
-                if (text != "Creator Chose Not To Use Archive Warnings" or text != "No Archive Warnings Apply"):
-                    fanfic_info["prompt"] += tag + text
+                if (classify != "warnings"):
+                    # tag = "\n" + str(classify[0].upper()) + str(classify[1:]) + " "
+                    text = get_tag_text(t.find("a")) + " "
+                    fanfic_info["prompt"] += '\n' + text
             fanfic_info["prompt"] += "\n\n###\n\n" # Fixed separator at end of prompt for training
 
             text = ""
             # Getting fanfic text
-            link_to_text = ao3_domain + f.select("h4.heading > a")[0].attrs['href']
+            link_to_text = ao3_domain + f.select("div.header.module > h4.heading > a")[0].attrs['href'] + "?view_full_work=true"
+            print(link_to_text)
 
             # While loop in case of multiple pages
             while link_to_text != "":
@@ -133,12 +135,17 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
                 # Getting Chapter Title
                 title = text_soup.find("h3", class_="title")
                 if (title != None):
-                    text += get_tag_text(title.find("a")) + re.search(r">(.*)</a>", str(title))[1] + ": "
+                    text += get_tag_text(title.find("a")) + ' ' + re.search(r"</a>(.*)", str(title))[1] + ": "
 
                 # Getting text
-                page = text_soup.select("div.userstuff.module > p")
+                page = text_soup.select("div.userstuff > p")
                 for p in page:
-                    text += get_tag_text(p)
+                    try:
+                        t = get_tag_text(p)
+                        t.encode('ascii')
+                        text += t
+                    except UnicodeEncodeError:
+                        continue
 
                 # Finding next page in fanfic
                 link_to_text = ""
