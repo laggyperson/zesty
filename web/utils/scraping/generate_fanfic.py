@@ -134,8 +134,26 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
             title = text_soup.select("div.chapter")
             if (title != None):
                 for chapter in title:
+                    print("###############################", chapter, "\n\n")
                     # Getting chapter title
-                    text += get_tag_text(title.find("a")) + ' ' + re.search(r"</a>(.*)", str(title))[1] + ": "
+                    chapt_title = chapter.select("h3.title")
+                    try:
+                        text += get_tag_text(chapt_title.find("a")) + ' ' + re.search(r"</a>(.*)", str(chapt_title))[1] + ": "
+                    except AttributeError:
+                        print("Skipped")
+                    
+
+                    # Getting chapter text
+                    page = chapter.select('div.userstuff > p')
+                    for p in page:
+                        t = get_tag_text(p)
+                        
+                        # Checking if it contains valid unicode characters
+                        try:
+                            test = t.encode('utf8')
+                            text += t
+                        except UnicodeEncodeError:
+                            print("Failed to get line: ", t)
 
             else:
                 # Getting text if chapter titles don't exist
@@ -162,7 +180,7 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
             counter += 1
         else:
             link = ""
-    print(counter)
+    print("Scraped ", counter, " fanfictions")
     return [authors, fanfics]
 
 #TODO: WEEK 4 (OPTIONAL) potential helper function!
