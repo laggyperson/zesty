@@ -64,7 +64,10 @@ ret:
 """
 def convert_to_int(word_count):
     word_count = word_count.replace(',', '')
-    return int(word_count)
+    try:
+        return int(word_count)
+    except ValueError:
+        return -1
 
 #TODO: WEEK 2 Deliberable finish this function ! I have some very loose guide lines for you, feel free to follow them or start from scratch! 
 # returns an array of two elements: 1) an array of all the authors whose fanfiction we scraped; 2. specified {number} fanfics (or all fanfic availiable if the total fanfic is less than the number) of word range {min_length}to {max_length}
@@ -75,8 +78,7 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
     fanfics = []
     authors = []
 
-    # Before: https://archiveofourown.org/tags/*h*DRCL%20Midnight%20Children%20(Manga)/works
-    # After: https://archiveofourown.org/works?commit=Sort+and+Filter&work_search%5Bsort_column%5D=hits&work_search%5Bother_tag_names%5D=&work_search%5Bexcluded_tag_names%5D=&work_search%5Bcrossover%5D=&work_search%5Bcomplete%5D=&work_search%5Bwords_from%5D=&work_search%5Bwords_to%5D=&work_search%5Bdate_from%5D=&work_search%5Bdate_to%5D=&work_search%5Bquery%5D=&work_search%5Blanguage_id%5D=&tag_id=*h*DRCL+Midnight+Children+%28Manga%29
+    # Not using for now
     sort_by = f""
     link = get_link(fandom) + sort_by
 
@@ -123,37 +125,30 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
             fanfic_info["prompt"] += "\n\n###\n\n" # Fixed separator at end of prompt for training
 
             text = ""
-            # Getting fanfic text
+            # Getting fanfic text - set option to view entire work
             link_to_text = ao3_domain + f.select("div.header.module > h4.heading > a")[0].attrs['href'] + "?view_full_work=true"
-            print(link_to_text)
+            html_to_text = requests.get(link_to_text)
+            text_soup = BeautifulSoup(html_to_text.text, 'lxml')
 
-            # While loop in case of multiple pages
-            while link_to_text != "":
-                html_to_text = requests.get(link_to_text)
-                text_soup = BeautifulSoup(html_to_text.text, 'lxml')
-
-                # Getting Chapter Title
-                title = text_soup.find("h3", class_="title")
-                if (title != None):
+            # Going chapter by chapter through the text if there exists many
+            title = text_soup.select("div.chapter")
+            if (title != None):
+                for chapter in title:
+                    # Getting chapter title
                     text += get_tag_text(title.find("a")) + ' ' + re.search(r"</a>(.*)", str(title))[1] + ": "
 
-                # Getting text
+            else:
+                # Getting text if chapter titles don't exist
                 page = text_soup.select("div.userstuff > p")
                 for p in page:
+                    t = get_tag_text(p)
+                    
+                    # Checking if it contains valid unicode characters
                     try:
-                        t = get_tag_text(p)
-                        t.encode('ascii')
+                        test = t.encode('utf8')
                         text += t
                     except UnicodeEncodeError:
-                        continue
-
-                # Finding next page in fanfic
-                link_to_text = ""
-                next_chap = text_soup.select("ul.actions > li")
-                for actions in next_chap:
-                    if re.search(r"Next Chapter", actions.get_text()) != None:
-                        link_to_text = ao3_domain + actions.find("a").attrs["href"]
-                        break
+                        print("Failed to get line: ", t)
             
             text += "###STOP###" # Ending text sequence
             fanfic_info["completion"] += text
@@ -167,7 +162,7 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
             counter += 1
         else:
             link = ""
-
+    print(counter)
     return [authors, fanfics]
 
 #TODO: WEEK 4 (OPTIONAL) potential helper function!
@@ -225,7 +220,15 @@ def generate_fanfic(fandom, tags):
 #     else:
 #         print("usage: generate_fanfic fandom [tags]")
 
-[a, t] = get_fanfic_info('Harry Potter - J. K. Rowling', 10, 'English', 500, 1000)
-print(a, '\n\n\n\n')
-for f in t:
-    print(f['prompt'], '\n', f['completion'], '\n\n\n')
+[a, f] = get_fanfic_info('Marvel', 1, 'English', 1000, 2000)
+
+# Creating JSON input for fine-tuned data
+json_file = "../../json/fine_tune_data.json"
+fandoms_json_input = f
+json_in = json.dumps(fandoms_json_input, indent=4)
+
+# Writing to JSON file
+with open(json_file, 'w') as f:
+    f.write(json_in)
+
+print("Successfully wrote data!")
