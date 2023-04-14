@@ -8,6 +8,7 @@ import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
 import {Base64} from '@openzeppelin/contracts/utils/Base64.sol';
 
 // Deployed on Mumbai
+
 contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
     using Counters for Counters.Counter;
     using Strings for uint256;
@@ -36,28 +37,6 @@ contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
 
     constructor() ERC721('bearchainAI', 'BCHAI') {}
 
-    function safeMint(address to, string memory uri) public onlyOwner {
-        uint256 tokenId = _tokenIdCounter.current();
-        _tokenIdCounter.increment();
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId, uri);
-    }
-
-    // The following functions are overrides required by Solidity.
-
-    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
-    }
-
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
-    {
-        return super.tokenURI(tokenId);
-    }
-
     // Methods to change NFT base metadata after deployment if needed
     function setExternalUrl(string memory _url) public onlyOwner {
         external_url = _url;
@@ -72,53 +51,50 @@ contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
         return authors.length;
     }
 
+
     /**
      * @dev mints fanfic nft and updates total number of cites for an author
      * @param title title of new fanfic
      * @param content main fanfic content
      * @param kudos list of referenced authors and number of fanfics cited
      */
-    /*
     function mint(
         string memory title,
         string memory content,
         string memory fandom,
         Kudo[] memory kudos
     ) public {
-        uint256 _____ = _tokenIdCounter.current();
+        uint256 tokenId = _tokenIdCounter.current();
         _tokenIdCounter.increment();
-        _safeMint(msg.sender, _____);
+        _safeMint(msg.sender, tokenId);
 
-        // Set the new fanfic data
-        __________.title = title;
-        __________.content = content;
-        __________.fandom = fandom;
+        tokenIdToFanfic[tokenId].title = title;
+        tokenIdToFanfic[tokenId].content = content;
+        tokenIdToFanfic[tokenId].fandom = fandom;
 
-        // Sets the kudos to the new fanfic
         for (uint i = 0; i < kudos.length; i++) {
-            __________.kudos.push(_____);
+            tokenIdToFanfic[tokenId].kudos.push(
+                Kudo({author: kudos[i].author, cites: kudos[i].cites})
+            );
         }
 
-        // Sets the token URI
-        _setTokenURI(_____, tokenURI(_____));
+        _setTokenURI(tokenId, tokenURI(tokenId));
 
-        // Updates the total number of citations for an author
         for (uint i = 0; i < kudos.length; i++) {
-            Kudo memory _____ = _____;
+            Kudo memory currentKudo = kudos[i];
 
-            if (_____[__________] == 0) {
-                _____.push(__________);
+            if (authorToKudos[currentKudo.author] == 0) {
+                authors.push(currentKudo.author);
             }
 
-            _____[__________] += __________;
+            authorToKudos[kudos[i].author] += kudos[i].cites;
         }
-    }*/
+    }
 
     /**
      * @dev overrides default tokenURI and returns in base64 json format
      * @param tokenId returns uri for the specified tokenid
      */
-    /*
     function tokenURI(
         uint256 tokenId
     ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
@@ -127,33 +103,32 @@ contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
             'ERC721Metadata: URI query for nonexistent token'
         );
 
-        // OPTIONAL
-        _____________________________________________;
-        _____________________________________________;
+        string memory tokenString = tokenId.toString();
+        Fanfic memory fanfic = tokenIdToFanfic[tokenId];
 
         // must escape json strings when minting! else this will break
         bytes memory json = abi.encodePacked(
             '{',
             '"name": "Fanfic #',
-            __________,
+            tokenString,
             ': ',
-            __________,
+            fanfic.title,
             '",',
             '"description": "',
-            __________,
+            fanfic.content,
             '",',
             '"external_url": "',
-            __________,
-            __________,
+            external_url,
+            tokenString,
             '",',
             '"image_data": "',
-            __________,
-            __________,
+            image_data_url,
+            tokenString,
             '",',
             '"attributes": [',
-            __________,
+            _kudosToAttributeString(fanfic.kudos),
             '{"trait_type" : "Fandom", "value": "',
-            __________,
+            fanfic.fandom,
             '"}',
             ']'
             '}'
@@ -166,34 +141,33 @@ contract bearchainAI is ERC721, ERC721URIStorage, Ownable {
                     Base64.encode(json)
                 )
             );
-    } */
+    }
 
     /**
      * @dev creates json strin of kudos attributes
      * @param kudos list of all kudo structs
      */
-    /*
     function _kudosToAttributeString(
         Kudo[] memory kudos
     ) internal pure returns (string memory) {
-        string memory _____ = '';
-        for (uint i = 0; i < _____; i++) {
-            _____ = string.concat(
-                _____,
+        string memory kudosJSON = '';
+        for (uint i = 0; i < kudos.length; i++) {
+            kudosJSON = string.concat(
+                kudosJSON,
                 '{"trait_type": "',
-                _____,
+                kudos[i].author,
                 '", "value": ',
-                _____,
+                kudos[i].cites.toString(),
                 '},'
             );
         }
-        return _____;
-    }*/
+        return kudosJSON;
+    }
 
     // The following functions are overrides required by Solidity.
-    /*function _burn(
+    function _burn(
         uint256 tokenId
     ) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
-    }*/
+    }
 }

@@ -134,17 +134,19 @@ def get_fanfic_info(fandom, number, language, min_length, max_length):
             title = text_soup.select("div.chapter")
             if (title != None):
                 for chapter in title:
-                    print("###############################", chapter, "\n\n")
                     # Getting chapter title
                     chapt_title = chapter.select("h3.title")
                     try:
                         text += get_tag_text(chapt_title.find("a")) + ' ' + re.search(r"</a>(.*)", str(chapt_title))[1] + ": "
                     except AttributeError:
                         print("Skipped")
+                        print("###############################", chapter, "\n\n")
+
                     
 
                     # Getting chapter text
                     page = chapter.select('div.userstuff > p')
+
                     for p in page:
                         t = get_tag_text(p)
                         
