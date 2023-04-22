@@ -12,10 +12,10 @@ export default async function handler(
     const tokenId = parseInt(req.query.tokenId.toString());
     const limit = req.query.limit ? parseInt(req.query.limit.toString()) : 1;
 
-    const provider = new ethers.providers.JsonRpcProvider(__________);
-    const contract = new ethers.Contract(__________, __________, __________);
+    const provider = new ethers.providers.JsonRpcProvider(process.env.ALCHEMY_API_URL);
+    const contract = new ethers.Contract(contractAddress, contractAbi, provider);
 
-    const totalMinted = await contract.__________;
+    const totalMinted = await contract._tokenIdCounter;
     let fanfics: Fanfic[] = [];
 
     // scuffed but wtv
@@ -26,8 +26,8 @@ export default async function handler(
       }
 
       // Get contract information
-      const fullURI = await contract.__________;
-      const basicInfo = await contract.__________;
+      const fullURI = await contract.tokenId(i);
+      const basicInfo = await contract.tokenIdToFanfic(i);
 
       const uriJson = JSON.parse(
         Buffer.from(fullURI.substring(29), 'base64').toString()
